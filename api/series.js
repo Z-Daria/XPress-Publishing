@@ -2,6 +2,8 @@ const { json } = require('body-parser');
 const express = require('express');
 const seriesRouter = express.Router();
 const sqlite3 = require('sqlite3');
+const issuesRouter = require('./issues.js');
+seriesRouter.use('/:seriesId/issues', issuesRouter);
 
 const db = new sqlite3.Database(process.env.TEST_DATABASE || '../database.sqlite');
 
@@ -79,9 +81,23 @@ seriesRouter.put('/:seriesId', (req, res, next) => {
     }
 });
 
-// seriesRouter.delete('/:seriesId', (req, res, next) => {
-//     const id = req.series.id;
-
-// })
+seriesRouter.delete('/:seriesId', (req, res, next) => {
+    const id = req.series.id;
+    db.get(`SELECT * FROM Issue WHERE series_id = ${id}`, (err, issue) => {
+        if (err) {
+            next(err);
+        } else if(issue) {
+            res.status(400).send();
+        } else {
+            db.run(`DELETE FROM Series WHERE id = ${id}`, (err) => {
+                if (err) {
+                    next(err);
+                } else {
+                    res.status(204).send();
+                }
+            })
+        }
+    })
+});
 
 module.exports = seriesRouter;
